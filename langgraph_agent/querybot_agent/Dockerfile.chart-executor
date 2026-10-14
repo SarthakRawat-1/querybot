@@ -1,0 +1,37 @@
+# Dockerfile for Chart Generation Executor
+# Provides an isolated environment for executing data visualization code
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV MPLBACKEND=Agg
+
+# Create non-root user for security
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Create output directory with proper permissions
+RUN mkdir -p /app/output && chown appuser:appgroup /app/output
+
+# Install Python dependencies
+COPY requirements-chart.txt /app/
+RUN pip install --no-cache-dir -r requirements-chart.txt
+
+# Set ownership of app directory
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Default command (will be overridden)
+CMD ["python"]

@@ -1,0 +1,65 @@
+name: querybot-local
+
+services:
+  sqlite-service:
+    build:
+      context: ./sqlite_server
+    env_file:
+      - ./sqlite_server/.env
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "3001:3001"
+
+  agent:
+    build:
+      context: ./langgraph_agent
+    env_file:
+      - ./langgraph_agent/.env
+    environment:
+      SQLITE_SERVICE_URL: http://sqlite-service:3001
+      CHART_DOCKER_ENABLED: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - charts_data:/app/generated_charts
+    ports:
+      - "8000:8000"
+    depends_on:
+      - sqlite-service
+
+  server:
+    build:
+      context: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: sqlite:////app/data/querybot.db
+      SQLITE_SERVICE_URL: http://sqlite-service:3001
+      LANGGRAPH_API_URL: http://agent:8000
+    volumes:
+      - server_data:/app/data
+    ports:
+      - "5000:5000"
+    depends_on:
+      - sqlite-service
+      - agent
+    command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 5000"]
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - server
+
+volumes:
+  uploads_data:
+  charts_data:
+  server_data:

@@ -1,0 +1,13 @@
+# Requirements file for chart generation Docker container
+# Minimal set of packages needed for data visualization
+
+# Core data science packages
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization packages
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Additional utilities
+Pillow>=9.0.0
